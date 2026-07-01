@@ -1,0 +1,110 @@
+
+-- ==========================================================
+-- MARCLYN SAÚDE PRO - SCRIPT DE INFRAESTRUTURA COMPLETO V5
+-- Este script configura TODAS as tabelas e permissões necessárias.
+-- Execute no SQL Editor do Supabase para corrigir erros de permissão.
+-- ==========================================================
+
+-- 1. TABELA DE PERFIS (profiles)
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+    name TEXT,
+    email TEXT UNIQUE,
+    role TEXT CHECK (role IN ('admin', 'clinic', 'professional', 'patient')),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('active', 'pending', 'rejected', 'blocked')),
+    avatar_url TEXT,
+    specialty TEXT,
+    document TEXT,
+    reg TEXT,
+    phone TEXT,
+    address TEXT,
+    neighborhood TEXT,
+    city TEXT DEFAULT 'Salvador',
+    bio TEXT,
+    about TEXT,
+    price TEXT,
+    available_services TEXT[],
+    favorites UUID[] DEFAULT '{}',
+    yampi_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. TABELA DE GALERIA (profile_images) - CORREÇÃO DE ERRO 42501
+CREATE TABLE IF NOT EXISTS public.profile_images (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    image_url TEXT NOT NULL,
+    position INTEGER NOT NULL CHECK (position >= 1 AND position <= 3),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(profile_id, position)
+);
+
+-- 3. TABELA DE AGENDAMENTOS (appointments)
+CREATE TABLE IF NOT EXISTS public.appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID REFERENCES public.profiles(id) NOT NULL,
+    clinic_id UUID REFERENCES public.profiles(id) NOT NULL,
+    doctor_name TEXT,
+    date TEXT NOT NULL,
+    status TEXT DEFAULT 'scheduled',
+    type TEXT,
+    notes TEXT,
+    meeting_url TEXT,
+    room_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 4. TABELA DE REGISTROS MÉDICOS (medical_records)
+CREATE TABLE IF NOT EXISTS public.medical_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID REFERENCES public.profiles(id) NOT NULL,
+    professional_id UUID REFERENCES public.profiles(id),
+    date TEXT NOT NULL,
+    diagnosis TEXT,
+    prescription TEXT,
+    doctor_name TEXT,
+    type TEXT,
+    title TEXT,
+    cid TEXT,
+    days TEXT,
+    file_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5. HABILITAR RLS EM TUDO
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.medical_records ENABLE ROW LEVEL SECURITY;
+
+-- 6. POLÍTICAS DE SEGURANÇA - GALERIA (profile_images)
+DROP POLICY IF EXISTS "gallery_select_policy" ON public.profile_images;
+DROP POLICY IF EXISTS "gallery_insert_policy" ON public.profile_images;
+DROP POLICY IF EXISTS "gallery_update_policy" ON public.profile_images;
+DROP POLICY IF EXISTS "gallery_delete_policy" ON public.profile_images;
+
+CREATE POLICY "gallery_select_policy" ON public.profile_images FOR SELECT USING (true);
+CREATE POLICY "gallery_insert_policy" ON public.profile_images FOR INSERT WITH CHECK (auth.uid() = profile_id);
+CREATE POLICY "gallery_update_policy" ON public.profile_images FOR UPDATE USING (auth.uid() = profile_id);
+CREATE POLICY "gallery_delete_policy" ON public.profile_images FOR DELETE USING (auth.uid() = profile_id);
+
+-- 7. POLÍTICAS DE SEGURANÇA - REGISTROS MÉDICOS
+CREATE POLICY "Medical Records visibility" ON public.medical_records 
+FOR SELECT USING (
+    auth.uid() = patient_id OR 
+    auth.uid() = professional_id OR
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Professional insert permissions" ON public.medical_records 
+FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role IN ('clinic', 'professional') AND status = 'active'
+    )
+);
+
+-- 8. PERMISSÕES GLOBAIS
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;

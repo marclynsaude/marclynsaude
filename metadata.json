@@ -1,0 +1,8 @@
+{
+  "name": "Marclyn Saúde Pro - Club Paciente",
+  "description": "Plataforma completa de saúde com o Club Paciente. Tenha acesso a benefícios exclusivos, descontos em consultas e exames, além de pronto atendimento 24h por vídeo chamada.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

@@ -1,0 +1,29 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// Fix: __dirname is not available in ES module scope by default
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, '.', '');
+    return {
+      server: {
+        port: 3000,
+        host: '0.0.0.0',
+      },
+      plugins: [react()],
+      define: {
+        // Fix: Align API key mapping with @google/genai guidelines using process.env.API_KEY
+        'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || env.GEMINI_API_KEY),
+      },
+      resolve: {
+        alias: {
+          // Fix: __dirname is now defined above to resolve the root path correctly
+          '@': path.resolve(__dirname, '.'),
+        }
+      }
+    };
+});
