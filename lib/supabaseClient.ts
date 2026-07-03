@@ -6,9 +6,8 @@ import { createClient } from '@supabase/supabase-js';
  * Foco: Persistência de sessão e resiliência de rede.
  */
 
-export const SUPABASE_URL = "https://kwwpsotvxyxxjzifibbb.supabase.co";
-export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3d3Bzb3R2eHl4eGp6aWZpYmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MTg2NTksImV4cCI6MjA4MDk5NDY1OX0.3iL-50ArNUJhmLlb_FsMzHC9VPgbXh1MM-m-a2dxpNg";
-
+export const SUPABASE_URL = "https://rwogxmqswfinvloksspp.supabase.co";
+sb_publishable_3PUMl8Oh2Bo6remvCStRuA_PV1ufIga
 export const IS_DB_CONNECTED = true;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
